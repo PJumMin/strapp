@@ -4,65 +4,67 @@ import lombok.Data;
 import model.OrderOption;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Data
 public class OrderDetailDTO {
-    private Integer orderId;
-    private List<X> products;
-    private Integer totalPrice;
+    private int orderId;
+    private List<ProductDTO> products = new ArrayList<>();
+    private int sumPrice;
 
-    public OrderDetailDTO(List<OrderOption> orderOptions) { // p1(orOption1, orOption2), p2(orOption3)
-        this.orderId = orderOptions.get(0).getOrder().getId();
+    public OrderDetailDTO(List<OrderOption> orderOptions) {
+        this.orderId = orderOptions.get(0).getId();
 
-        List<OrderOption> op1s = new ArrayList<>();
-        op1s.add(orderOptions.get(0));
-        op1s.add(orderOptions.get(1));
+        // 중복이 제거된 상품 ids + 전체금액 계산
+        Set<Integer> productIds = new HashSet<>();
+        for (OrderOption orderOption : orderOptions) {
+            productIds.add(orderOption.getProduct().getId());
+            this.sumPrice += orderOption.getTotalPrice();
+        }
 
-        List<OrderOption> op2s = new ArrayList<>();
-        op2s.add(orderOptions.get(2));
+        // 상품별 주문한 상품옵션 만들기
+        for (Integer productId : productIds) {
 
-        X x1 = new X(op1s);
-        X x2 = new X(op2s);
+            List<OrderOption> selectedOptions = new ArrayList<>();
 
-        List<X> xList = new ArrayList<>();
-        xList.add(x1);
-        xList.add(x2);
+            for (OrderOption orderOption : orderOptions) {
+                if (productId == orderOption.getProduct().getId()) {
+                    selectedOptions.add(orderOption);
+                }
+            }
 
-        this.products = xList;
-        this.totalPrice = 0;
-        for (OrderOption op : orderOptions) {
-            this.totalPrice += op.getTotalPrice();
+            ProductDTO productDTO = new ProductDTO(productId, selectedOptions);
+            this.products.add(productDTO);
         }
     }
 
     @Data
-    public class X {
-        private Integer productId;
-        private List<Y> orderOptions;
+    class ProductDTO {
+        private int productId;
+        private List<OrderOptionDTO> orderOptions = new ArrayList<>();
 
-        public X(List<OrderOption> orderOptions) {
-            this.productId = orderOptions.get(0).getProduct().getId();
-            List<Y> yList = new ArrayList<>();
+        public ProductDTO(int productId, List<OrderOption> orderOptions) {
+            this.productId = productId;
+
             for (OrderOption orderOption : orderOptions) {
-                yList.add(new Y(orderOption));
+                this.orderOptions.add(new OrderOptionDTO(orderOption));
             }
-
-            this.orderOptions = yList;
         }
 
         @Data
-        public class Y {
-            private Integer orderOptionId;
+        class OrderOptionDTO {
+            private int orderOptionId;
             private String orderOptionName;
-            private Integer orderOptionQty;
-            private Integer orderOptionTotalPrice;
+            private int orderQty;
+            private int orderTotalPrice;
 
-            public Y(OrderOption orderOption) {
+            public OrderOptionDTO(OrderOption orderOption) {
                 this.orderOptionId = orderOption.getId();
                 this.orderOptionName = orderOption.getOptionName();
-                this.orderOptionQty = orderOption.getQty();
-                this.orderOptionTotalPrice = orderOption.getTotalPrice();
+                this.orderQty = orderOption.getQty();
+                this.orderTotalPrice = orderOption.getTotalPrice();
             }
         }
     }
